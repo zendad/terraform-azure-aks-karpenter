@@ -154,12 +154,6 @@ variable "image_cleaner_interval_hours" {
   description = "The interval in hours at which the image cleaner should run to clean up unused container images."
 }
 
-variable "key_vault_secrets_provider_enabled" {
-  type        = bool
-  default     = true
-  description = "Enable the integration of the Azure Key Vault Secrets Provider to mount secrets into AKS pods as volumes."
-}
-
 variable "agents_pool_name" {
   type        = string
   default     = "platformpool"
@@ -307,3 +301,257 @@ variable "karpenter_version" {
   type    = string
   default = ""
 }
+
+variable "os_disk_size_gb" {
+  description = "The size of the OS disk in gigabytes for the virtual machine."
+  type        = number
+  default     = 50
+}
+
+variable "maintenance_window" {
+  description = "Specifies the allowed and not allowed maintenance windows. 'allowed' defines specific days and hours, while 'not_allowed' defines exact time ranges in UTC where maintenance should not occur."
+  type = object({
+    allowed = list(object({
+      day   = string
+      hours = list(number)
+    }))
+    not_allowed = list(object({
+      start = string
+      end   = string
+    }))
+  })
+  default = {
+    allowed = [
+      {
+        day   = "Sunday"
+        hours = [22, 23]
+      }
+    ]
+    not_allowed = [
+      {
+        start = "2035-01-01T20:00:00Z"
+        end   = "2035-01-01T21:00:00Z"
+      }
+    ]
+  }
+}
+
+variable "key_vault_secrets_provider_enabled" {
+  description = "Enable integration with Azure Key Vault Secrets Provider to mount secrets into pods."
+  type        = bool
+  default     = true
+}
+
+variable "private_cluster_enabled" {
+  description = "Specifies whether the AKS cluster is private (API server accessible only within virtual network)."
+  type        = bool
+  default     = true
+}
+
+variable "enable_host_encryption" {
+  description = "Specifies whether host-based encryption is enabled for nodes in the AKS cluster."
+  type        = bool
+  default     = true
+}
+
+variable "kms_enabled" {
+  description = "Enable Azure Key Management Service (KMS) for secret encryption at rest in the AKS cluster."
+  type        = bool
+  default     = true
+}
+
+variable "kms_key_vault_network_access" {
+  description = "Specifies the network access level for the Key Vault used by KMS. Possible values: 'private' or 'public'."
+  type        = string
+  default     = "public"
+}
+
+variable "secret_rotation_enabled" {
+  description = "Is secret rotation enabled? This variable is only used when `key_vault_secrets_provider_enabled` is `true`."
+  type        = bool
+  default     = false
+}
+
+variable "secret_rotation_interval" {
+  description = "The interval to poll for secret rotation. This is only used when `secret_rotation_enabled` is `true`."
+  type        = string
+  default     = "2m"
+}
+
+
+variable "karpenter_resources" {
+  description = "CPU and memory requests and limits for the Karpenter controller"
+  type = object({
+    request_cpu    = string
+    request_memory = string
+    limit_memory   = string
+  })
+
+  default = {
+    request_cpu    = "200m"
+    request_memory = "512Mi"
+    limit_memory   = "512Mi"
+  }
+}
+
+variable "bootstrap_token_secret_name" {
+  type        = string
+  description = "Name of the bootstrap token secret in kube-system namespace"
+  default     = ""
+}
+
+variable "karpenter_service_account_name" {
+  description = "The name of the Karpenter service account"
+  type        = string
+  default     = "karpenter-controller-sa"
+}
+
+variable "soft_delete_retention_days" {
+  description = "Number of days to retain soft-deleted Key Vaults before permanent deletion."
+  type        = number
+  default     = 7
+}
+
+variable "purge_protection_enabled" {
+  description = "Whether purge protection is enabled on the Key Vault (required for Disk Encryption Set)."
+  type        = bool
+  default     = true
+}
+
+variable "public_network_access_enabled" {
+  description = "Enable or disable public network access to the Key Vault."
+  type        = bool
+  default     = true
+}
+
+variable "enabled_for_disk_encryption" {
+  description = "Enable the Key Vault to be used with Azure Disk Encryption."
+  type        = bool
+  default     = true
+}
+
+variable "enable_rbac_authorization" {
+  description = "Whether to enable Role-Based Access Control (RBAC) authorization for the Key Vault."
+  type        = bool
+  default     = true
+}
+
+variable "enabled_for_template_deployment" {
+  description = "Specifies if the Key Vault is available for template deployment."
+  type        = bool
+  default     = true
+}
+
+variable "enabled_for_deployment" {
+  description = "Specifies if the Key Vault is enabled for use in deployment."
+  type        = bool
+  default     = true
+}
+
+variable "key_vault_sku_name" {
+  description = "The SKU name of the Key Vault. Possible values are 'standard' and 'premium'."
+  type        = string
+  default     = "standard"
+}
+
+variable "key_vault_key_type" {
+  description = "The type of key to create in Key Vault. Possible values are 'RSA', 'RSA-HSM', 'EC', 'EC-HSM'."
+  type        = string
+  default     = "RSA"
+}
+
+variable "key_vault_key_size" {
+  description = "The size of the RSA key to create. Required only for RSA or RSA-HSM."
+  type        = number
+  default     = 2048
+}
+
+variable "key_vault_key_create_duration" {
+  description = "The duration after which the key will be created in the Key Vault. Format should be a duration string (e.g. '120s')."
+  type        = string
+  default     = "120s"
+}
+
+variable "key_vault_key_auto_rotation_enabled" {
+  description = "Specifies whether automatic key rotation is enabled for the Key Vault key."
+  type        = bool
+  default     = true
+}
+
+variable "key_vault_role_definition_name" {
+  description = "The built-in role definition name to assign for the Key Vault access."
+  type        = string
+  default     = "Key Vault Administrator"
+}
+
+variable "key_vault_key_opts" {
+  description = <<EOT
+A list of operations permitted on the Key Vault key.
+Valid values include:
+- "decrypt"
+- "encrypt"
+- "sign"
+- "unwrapKey"
+- "verify"
+- "wrapKey"
+EOT
+
+  type = list(string)
+  default = [
+    "decrypt",
+    "encrypt",
+    "sign",
+    "unwrapKey",
+    "verify",
+    "wrapKey",
+  ]
+}
+
+variable "key_expiration_offset" {
+  description = "The duration (e.g., '1h', '24h', '720h') to add to the current timestamp to set the key expiration date."
+  type        = string
+  default     = "8760h"
+}
+
+variable "key_vault_node_role_definition_name" {
+  description = "The role name used for node pool access to Key Vault for disk encryption."
+  type        = string
+  default     = "Key Vault Crypto Service Encryption User"
+}
+
+variable "key_vault_ip_rules" {
+  description = "List of IP addresses allowed to access the key vault"
+  type        = list(string)
+  default     = ["185.209.237.16"]
+}
+
+variable "nat_gateway_sku_name" {
+  description = "The SKU of the NAT Gateway"
+  type        = string
+  default     = "Standard"
+}
+
+variable "public_ip_allocation_method" {
+  description = "The allocation method for the public IP"
+  type        = string
+  default     = "Static"
+}
+
+variable "public_ip_sku" {
+  description = "The SKU of the public IP (Standard is required for NAT Gateway)"
+  type        = string
+  default     = "Standard"
+}
+
+variable "idle_timeout_in_minutes" {
+  description = "Idle timeout in minutes for NAT Gateway"
+  type        = number
+  default     = 10
+}
+
+variable "karpenter_subnet_role_definition" {
+  type        = string
+  description = "Role definition name or ID to assign on the subnets"
+  default     = "Network Contributor"
+}
+

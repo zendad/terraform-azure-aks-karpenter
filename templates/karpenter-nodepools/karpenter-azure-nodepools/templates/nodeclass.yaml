@@ -1,0 +1,11 @@
+{{- range .Values.nodeClasses }}
+apiVersion: karpenter.azure.com/v1beta1
+kind: AKSNodeClass
+metadata:
+  name: {{ .name }}
+  annotations:
+    kubernetes.io/description: "{{ .description }}"
+spec:
+  imageFamily: {{ .imageFamily }}
+---
+{{- end }}

@@ -1,5 +1,4 @@
 # terraform-azure-aks-karpenter
-NOT THIS IS STILL IN DEVELOPMENT
 # AKS Cluster Creation
 This repository contains the implementation of the (Azure/aks/azurerm)[Azure/aks/azurerm] Terraform module to provision an Azure Kubernetes Service (AKS) cluster with karpenter for node pools and optional features like OIDC and KMS encryption. This also implemements the necessary resource groups,virtual network (VNet) and subnets for the AKS cluster.
 
@@ -71,11 +70,10 @@ module "aks" {
 ````
 
 # Karpenter
-Karpenter is implemented using (self-hosted)[https://github.com/Azure/karpenter-provider-azure?tab=readme-ov-file#using-karpenter-self-hosted] mode. This part is not fully automated.
+Karpenter is implemented using (self-hosted)[https://github.com/Azure/karpenter-provider-azure?tab=readme-ov-file#using-karpenter-self-hosted] mode.
 
-## Karpenter Outstanding Issues
-1. Automate configuration of karpenter resources for nodepools
-2. Complete Automation of the script to boostrap karpenter
+# Bastion
+A custom bastion host is implemented for access to eks cluster if private access is implemented for eks cluster.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Requirements
@@ -83,7 +81,6 @@ Karpenter is implemented using (self-hosted)[https://github.com/Azure/karpenter-
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7.0 |
-| <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) | ~> 3.0.0 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | >= 3.107.0, < 4.0 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | >= 2.8 |
 | <a name="requirement_kubectl"></a> [kubectl](#requirement\_kubectl) | >= 1.7.0 |
@@ -94,34 +91,44 @@ Karpenter is implemented using (self-hosted)[https://github.com/Azure/karpenter-
 
 | Name | Version |
 |------|---------|
-| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | 3.0.2 |
+| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | 3.4.0 |
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | 3.117.1 |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | 3.0.2 |
 | <a name="provider_null"></a> [null](#provider\_null) | 3.2.4 |
 | <a name="provider_random"></a> [random](#provider\_random) | 3.3.2 |
+| <a name="provider_time"></a> [time](#provider\_time) | 0.13.1 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_aks"></a> [aks](#module\_aks) | Azure/aks/azurerm | 10.1.0 |
+| <a name="module_aks"></a> [aks](#module\_aks) | Azure/aks/azurerm | 10.2.0 |
 | <a name="module_network"></a> [network](#module\_network) | Azure/network/azurerm | 5.3.0 |
 
 ## Resources
 
 | Name | Type |
 |------|------|
+| [azurerm_disk_encryption_set.node](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/disk_encryption_set) | resource |
+| [azurerm_key_vault.vault](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault) | resource |
+| [azurerm_key_vault_key.node](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_key) | resource |
+| [azurerm_nat_gateway.nat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/nat_gateway) | resource |
+| [azurerm_nat_gateway_public_ip_association.nat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/nat_gateway_public_ip_association) | resource |
+| [azurerm_public_ip.nat_ip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
 | [azurerm_resource_group.aks_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
-| [azurerm_resource_group.backend](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
-| [azurerm_resource_group.vault_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
+| [azurerm_resource_group.tools_rg](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) | resource |
+| [azurerm_role_assignment.admin](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.aks_rbac_cluster_admin](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.karpenter_roles](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.node](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_storage_account.backend](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) | resource |
 | [azurerm_storage_container.tfstate](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) | resource |
-| [azurerm_user_assigned_identity.karpenter_msi](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) | resource |
-| [helm_release.karpenter](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
-| [helm_release.karpenter_crds](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
-| [null_resource.karpenter_config](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [azurerm_subnet_nat_gateway_association.nat_assoc](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet_nat_gateway_association) | resource |
+| [azurerm_user_assigned_identity.karpenter](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) | resource |
+| [helm_release.rbac_bindings](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
+| [null_resource.karpenter_helm_values](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [random_string.suffix](https://registry.terraform.io/providers/hashicorp/random/3.3.2/docs/resources/string) | resource |
+| [time_sleep.wait_for_rbac](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [azuread_group.k8s_groups](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/group) | data source |
 | [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
 
@@ -142,23 +149,46 @@ Karpenter is implemented using (self-hosted)[https://github.com/Azure/karpenter-
 | <a name="input_api_server_authorized_ip_ranges"></a> [api\_server\_authorized\_ip\_ranges](#input\_api\_server\_authorized\_ip\_ranges) | Set of authorized IP ranges for the API server | `set(string)` | `null` | no |
 | <a name="input_automatic_channel_upgrade"></a> [automatic\_channel\_upgrade](#input\_automatic\_channel\_upgrade) | The automatic upgrade channel to use for the AKS cluster. Determines how the cluster is updated with newer Kubernetes versions.<br/>Allowed values:<br/>  - "patch"       → Only automatic patch updates within the same minor version.<br/>  - "stable"      → Recommended channel for general workloads. Upgrades through stable minor versions.<br/>  - "rapid"       → For testing the latest versions quickly.<br/>  - "node-image"  → Only the node OS and container runtime get updated, Kubernetes version stays the same.<br/>  - "none"        → Disables automatic upgrades. Manual upgrades are required. | `string` | `"patch"` | no |
 | <a name="input_availability_zones"></a> [availability\_zones](#input\_availability\_zones) | List of availability zones to use | `list(string)` | `[]` | no |
+| <a name="input_bootstrap_token_secret_name"></a> [bootstrap\_token\_secret\_name](#input\_bootstrap\_token\_secret\_name) | Name of the bootstrap token secret in kube-system namespace | `string` | `""` | no |
 | <a name="input_container_access_type"></a> [container\_access\_type](#input\_container\_access\_type) | The access level of the storage container (private, blob, or container) | `string` | `"private"` | no |
 | <a name="input_default_tags"></a> [default\_tags](#input\_default\_tags) | Default tags for all resources | `map(string)` | `{}` | no |
 | <a name="input_ebpf_data_plane"></a> [ebpf\_data\_plane](#input\_ebpf\_data\_plane) | Specifies the eBPF data plane implementation for the AKS cluster.<br/>Allowed values:<br/>  - "none"     : Disable eBPF data plane (default kube-proxy)<br/>  - "cilium"   : Enable Cilium as the eBPF data plane | `string` | `"none"` | no |
 | <a name="input_enable_auto_scaling"></a> [enable\_auto\_scaling](#input\_enable\_auto\_scaling) | Enable cluster autoscaler for the AKS node pool to automatically adjust the number of nodes based on workload demand. | `bool` | `true` | no |
+| <a name="input_enable_host_encryption"></a> [enable\_host\_encryption](#input\_enable\_host\_encryption) | Specifies whether host-based encryption is enabled for nodes in the AKS cluster. | `bool` | `true` | no |
+| <a name="input_enable_rbac_authorization"></a> [enable\_rbac\_authorization](#input\_enable\_rbac\_authorization) | Whether to enable Role-Based Access Control (RBAC) authorization for the Key Vault. | `bool` | `true` | no |
+| <a name="input_enabled_for_deployment"></a> [enabled\_for\_deployment](#input\_enabled\_for\_deployment) | Specifies if the Key Vault is enabled for use in deployment. | `bool` | `true` | no |
+| <a name="input_enabled_for_disk_encryption"></a> [enabled\_for\_disk\_encryption](#input\_enabled\_for\_disk\_encryption) | Enable the Key Vault to be used with Azure Disk Encryption. | `bool` | `true` | no |
+| <a name="input_enabled_for_template_deployment"></a> [enabled\_for\_template\_deployment](#input\_enabled\_for\_template\_deployment) | Specifies if the Key Vault is available for template deployment. | `bool` | `true` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Deployment environment | `string` | `""` | no |
 | <a name="input_identity_type"></a> [identity\_type](#input\_identity\_type) | Specifies the type of managed identity used for the AKS cluster. Allowed values are 'SystemAssigned' or 'UserAssigned'. | `string` | `"SystemAssigned"` | no |
+| <a name="input_idle_timeout_in_minutes"></a> [idle\_timeout\_in\_minutes](#input\_idle\_timeout\_in\_minutes) | Idle timeout in minutes for NAT Gateway | `number` | `10` | no |
 | <a name="input_image_cleaner_enabled"></a> [image\_cleaner\_enabled](#input\_image\_cleaner\_enabled) | Enable or disable the image cleaner in the AKS cluster to automatically remove unused container images. | `bool` | `true` | no |
 | <a name="input_image_cleaner_interval_hours"></a> [image\_cleaner\_interval\_hours](#input\_image\_cleaner\_interval\_hours) | The interval in hours at which the image cleaner should run to clean up unused container images. | `number` | `72` | no |
 | <a name="input_karpenter_crds_chart_version"></a> [karpenter\_crds\_chart\_version](#input\_karpenter\_crds\_chart\_version) | Version of the Karpenter crds Helm chart | `string` | `""` | no |
 | <a name="input_karpenter_identity_name"></a> [karpenter\_identity\_name](#input\_karpenter\_identity\_name) | Name of the user-assigned managed identity. | `string` | `"karpentermsi"` | no |
 | <a name="input_karpenter_namespace"></a> [karpenter\_namespace](#input\_karpenter\_namespace) | Namespace where Karpenter will be installed | `string` | `"kube-system"` | no |
+| <a name="input_karpenter_resources"></a> [karpenter\_resources](#input\_karpenter\_resources) | CPU and memory requests and limits for the Karpenter controller | <pre>object({<br/>    request_cpu    = string<br/>    request_memory = string<br/>    limit_cpu      = string<br/>    limit_memory   = string<br/>  })</pre> | <pre>{<br/>  "limit_cpu": "1",<br/>  "limit_memory": "1Gi",<br/>  "request_cpu": "1",<br/>  "request_memory": "1Gi"<br/>}</pre> | no |
 | <a name="input_karpenter_roles"></a> [karpenter\_roles](#input\_karpenter\_roles) | List of built-in roles to assign to the Karpenter MSI | `list(string)` | <pre>[<br/>  "Virtual Machine Contributor",<br/>  "Network Contributor",<br/>  "Managed Identity Operator"<br/>]</pre> | no |
+| <a name="input_karpenter_service_account_name"></a> [karpenter\_service\_account\_name](#input\_karpenter\_service\_account\_name) | The name of the Karpenter service account | `string` | `"karpenter-controller-sa"` | no |
 | <a name="input_karpenter_version"></a> [karpenter\_version](#input\_karpenter\_version) | n/a | `string` | `""` | no |
-| <a name="input_key_vault_secrets_provider_enabled"></a> [key\_vault\_secrets\_provider\_enabled](#input\_key\_vault\_secrets\_provider\_enabled) | Enable the integration of the Azure Key Vault Secrets Provider to mount secrets into AKS pods as volumes. | `bool` | `true` | no |
+| <a name="input_key_expiration_offset"></a> [key\_expiration\_offset](#input\_key\_expiration\_offset) | The duration (e.g., '1h', '24h', '720h') to add to the current timestamp to set the key expiration date. | `string` | `"8760h"` | no |
+| <a name="input_key_vault_ip_rules"></a> [key\_vault\_ip\_rules](#input\_key\_vault\_ip\_rules) | List of IP addresses allowed to access the key vault | `list(string)` | <pre>[<br/>  "185.209.237.16"<br/>]</pre> | no |
+| <a name="input_key_vault_key_auto_rotation_enabled"></a> [key\_vault\_key\_auto\_rotation\_enabled](#input\_key\_vault\_key\_auto\_rotation\_enabled) | Specifies whether automatic key rotation is enabled for the Key Vault key. | `bool` | `true` | no |
+| <a name="input_key_vault_key_create_duration"></a> [key\_vault\_key\_create\_duration](#input\_key\_vault\_key\_create\_duration) | The duration after which the key will be created in the Key Vault. Format should be a duration string (e.g. '120s'). | `string` | `"120s"` | no |
+| <a name="input_key_vault_key_opts"></a> [key\_vault\_key\_opts](#input\_key\_vault\_key\_opts) | A list of operations permitted on the Key Vault key.<br/>Valid values include:<br/>- "decrypt"<br/>- "encrypt"<br/>- "sign"<br/>- "unwrapKey"<br/>- "verify"<br/>- "wrapKey" | `list(string)` | <pre>[<br/>  "decrypt",<br/>  "encrypt",<br/>  "sign",<br/>  "unwrapKey",<br/>  "verify",<br/>  "wrapKey"<br/>]</pre> | no |
+| <a name="input_key_vault_key_size"></a> [key\_vault\_key\_size](#input\_key\_vault\_key\_size) | The size of the RSA key to create. Required only for RSA or RSA-HSM. | `number` | `2048` | no |
+| <a name="input_key_vault_key_type"></a> [key\_vault\_key\_type](#input\_key\_vault\_key\_type) | The type of key to create in Key Vault. Possible values are 'RSA', 'RSA-HSM', 'EC', 'EC-HSM'. | `string` | `"RSA"` | no |
+| <a name="input_key_vault_node_role_definition_name"></a> [key\_vault\_node\_role\_definition\_name](#input\_key\_vault\_node\_role\_definition\_name) | The role name used for node pool access to Key Vault for disk encryption. | `string` | `"Key Vault Crypto Service Encryption User"` | no |
+| <a name="input_key_vault_role_definition_name"></a> [key\_vault\_role\_definition\_name](#input\_key\_vault\_role\_definition\_name) | The built-in role definition name to assign for the Key Vault access. | `string` | `"Key Vault Administrator"` | no |
+| <a name="input_key_vault_secrets_provider_enabled"></a> [key\_vault\_secrets\_provider\_enabled](#input\_key\_vault\_secrets\_provider\_enabled) | Enable integration with Azure Key Vault Secrets Provider to mount secrets into pods. | `bool` | `true` | no |
+| <a name="input_key_vault_sku_name"></a> [key\_vault\_sku\_name](#input\_key\_vault\_sku\_name) | The SKU name of the Key Vault. Possible values are 'standard' and 'premium'. | `string` | `"standard"` | no |
+| <a name="input_kms_enabled"></a> [kms\_enabled](#input\_kms\_enabled) | Enable Azure Key Management Service (KMS) for secret encryption at rest in the AKS cluster. | `bool` | `true` | no |
+| <a name="input_kms_key_vault_network_access"></a> [kms\_key\_vault\_network\_access](#input\_kms\_key\_vault\_network\_access) | Specifies the network access level for the Key Vault used by KMS. Possible values: 'private' or 'public'. | `string` | `"public"` | no |
 | <a name="input_kubernetes_version"></a> [kubernetes\_version](#input\_kubernetes\_version) | AKS kubernetes version | `string` | `""` | no |
 | <a name="input_location"></a> [location](#input\_location) | Azure Region | `string` | `""` | no |
 | <a name="input_log_analytics_workspace_enabled"></a> [log\_analytics\_workspace\_enabled](#input\_log\_analytics\_workspace\_enabled) | Indicates whether a Log Analytics workspace should be linked to the AKS cluster for monitoring. | `bool` | `false` | no |
+| <a name="input_maintenance_window"></a> [maintenance\_window](#input\_maintenance\_window) | Specifies the allowed and not allowed maintenance windows. 'allowed' defines specific days and hours, while 'not\_allowed' defines exact time ranges in UTC where maintenance should not occur. | <pre>object({<br/>    allowed = list(object({<br/>      day   = string<br/>      hours = list(number)<br/>    }))<br/>    not_allowed = list(object({<br/>      start = string<br/>      end   = string<br/>    }))<br/>  })</pre> | <pre>{<br/>  "allowed": [<br/>    {<br/>      "day": "Sunday",<br/>      "hours": [<br/>        22,<br/>        23<br/>      ]<br/>    }<br/>  ],<br/>  "not_allowed": [<br/>    {<br/>      "end": "2035-01-01T21:00:00Z",<br/>      "start": "2035-01-01T20:00:00Z"<br/>    }<br/>  ]<br/>}</pre> | no |
+| <a name="input_nat_gateway_sku_name"></a> [nat\_gateway\_sku\_name](#input\_nat\_gateway\_sku\_name) | The SKU of the NAT Gateway | `string` | `"Standard"` | no |
 | <a name="input_net_profile_dns_service_ip"></a> [net\_profile\_dns\_service\_ip](#input\_net\_profile\_dns\_service\_ip) | The IP address within the service CIDR to use for the Kubernetes DNS service (kube-dns/CoreDNS). Must be within the net\_profile\_service\_cidr range. | `string` | `"10.100.0.10"` | no |
 | <a name="input_net_profile_pod_cidr"></a> [net\_profile\_pod\_cidr](#input\_net\_profile\_pod\_cidr) | The CIDR block used for pod IP addresses in the AKS cluster. Required when using kubenet or overlay network plugin. | `string` | `"10.0.0.0/16"` | no |
 | <a name="input_net_profile_service_cidr"></a> [net\_profile\_service\_cidr](#input\_net\_profile\_service\_cidr) | The CIDR block used for Kubernetes service IPs in the AKS cluster. | `string` | `"10.0.0.0/16"` | no |
@@ -168,10 +198,19 @@ Karpenter is implemented using (self-hosted)[https://github.com/Azure/karpenter-
 | <a name="input_network_policy"></a> [network\_policy](#input\_network\_policy) | network policy to be used with Azure CNI | `string` | `""` | no |
 | <a name="input_oidc_issuer_enabled"></a> [oidc\_issuer\_enabled](#input\_oidc\_issuer\_enabled) | Enable the OpenID Connect (OIDC) issuer URL, which is required for Kubernetes workload identity and federated identity with external systems. | `bool` | `true` | no |
 | <a name="input_only_critical_addons_enabled"></a> [only\_critical\_addons\_enabled](#input\_only\_critical\_addons\_enabled) | Enable this setting to allow only critical addons to run on the system node pool, improving system isolation and performance. | `bool` | `true` | no |
+| <a name="input_os_disk_size_gb"></a> [os\_disk\_size\_gb](#input\_os\_disk\_size\_gb) | The size of the OS disk in gigabytes for the virtual machine. | `number` | `50` | no |
+| <a name="input_private_cluster_enabled"></a> [private\_cluster\_enabled](#input\_private\_cluster\_enabled) | Specifies whether the AKS cluster is private (API server accessible only within virtual network). | `bool` | `true` | no |
+| <a name="input_public_ip_allocation_method"></a> [public\_ip\_allocation\_method](#input\_public\_ip\_allocation\_method) | The allocation method for the public IP | `string` | `"Static"` | no |
+| <a name="input_public_ip_sku"></a> [public\_ip\_sku](#input\_public\_ip\_sku) | The SKU of the public IP (Standard is required for NAT Gateway) | `string` | `"Standard"` | no |
+| <a name="input_public_network_access_enabled"></a> [public\_network\_access\_enabled](#input\_public\_network\_access\_enabled) | Enable or disable public network access to the Key Vault. | `bool` | `true` | no |
+| <a name="input_purge_protection_enabled"></a> [purge\_protection\_enabled](#input\_purge\_protection\_enabled) | Whether purge protection is enabled on the Key Vault (required for Disk Encryption Set). | `bool` | `true` | no |
 | <a name="input_rbac_aad_azure_rbac_enabled"></a> [rbac\_aad\_azure\_rbac\_enabled](#input\_rbac\_aad\_azure\_rbac\_enabled) | Whether to enable Azure RBAC for Kubernetes authorization. If null, the provider default is used. | `bool` | `null` | no |
 | <a name="input_rbac_aad_tenant_id"></a> [rbac\_aad\_tenant\_id](#input\_rbac\_aad\_tenant\_id) | The Azure AD tenant ID to use for Kubernetes RBAC integration. If null, the default tenant is used. | `string` | `null` | no |
 | <a name="input_register_container_service"></a> [register\_container\_service](#input\_register\_container\_service) | Controls whether to register the Microsoft.ContainerService resource provider. | `bool` | `false` | no |
 | <a name="input_role_based_access_control_enabled"></a> [role\_based\_access\_control\_enabled](#input\_role\_based\_access\_control\_enabled) | Enable Role-Based Access Control (RBAC) for the AKS cluster to manage permissions using Azure AD or Kubernetes native roles. | `bool` | `true` | no |
+| <a name="input_secret_rotation_enabled"></a> [secret\_rotation\_enabled](#input\_secret\_rotation\_enabled) | Is secret rotation enabled? This variable is only used when `key_vault_secrets_provider_enabled` is `true`. | `bool` | `false` | no |
+| <a name="input_secret_rotation_interval"></a> [secret\_rotation\_interval](#input\_secret\_rotation\_interval) | The interval to poll for secret rotation. This is only used when `secret_rotation_enabled` is `true`. | `string` | `"2m"` | no |
+| <a name="input_soft_delete_retention_days"></a> [soft\_delete\_retention\_days](#input\_soft\_delete\_retention\_days) | Number of days to retain soft-deleted Key Vaults before permanent deletion. | `number` | `7` | no |
 | <a name="input_subscription_id"></a> [subscription\_id](#input\_subscription\_id) | Azure Subscription ID | `string` | `""` | no |
 | <a name="input_temporary_name_for_rotation"></a> [temporary\_name\_for\_rotation](#input\_temporary\_name\_for\_rotation) | Temporary name used for a node pool during node rotation or upgrade operations in the AKS cluster. This allows seamless replacement before removing the old node pool. | `string` | `"tempnodepool"` | no |
 | <a name="input_vault_name"></a> [vault\_name](#input\_vault\_name) | name for key vault | `string` | `"kv-cluster"` | no |

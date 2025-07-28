@@ -1,4 +1,6 @@
 # terraform-azure-aks-karpenter
+Deploy AKS cluster using terraform with karpenter for nodepools.
+
 # AKS Cluster Creation
 This repository contains the implementation of the (Azure/aks/azurerm)[Azure/aks/azurerm] Terraform module to provision an Azure Kubernetes Service (AKS) cluster with karpenter for node pools and optional features like OIDC and KMS encryption. This also implemements the necessary resource groups,virtual network (VNet) and subnets for the AKS cluster.
 
@@ -110,6 +112,7 @@ A custom bastion host is implemented for access to eks cluster if private access
 | Name | Type |
 |------|------|
 | [azurerm_disk_encryption_set.node](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/disk_encryption_set) | resource |
+| [azurerm_federated_identity_credential.karpenter_fic](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/federated_identity_credential) | resource |
 | [azurerm_key_vault.vault](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault) | resource |
 | [azurerm_key_vault_key.node](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_key) | resource |
 | [azurerm_nat_gateway.nat](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/nat_gateway) | resource |
@@ -120,17 +123,20 @@ A custom bastion host is implemented for access to eks cluster if private access
 | [azurerm_role_assignment.admin](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.aks_rbac_cluster_admin](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.karpenter_roles](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
+| [azurerm_role_assignment.karpenter_subnet_roles](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_role_assignment.node](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [azurerm_storage_account.backend](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account) | resource |
 | [azurerm_storage_container.tfstate](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) | resource |
 | [azurerm_subnet_nat_gateway_association.nat_assoc](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet_nat_gateway_association) | resource |
 | [azurerm_user_assigned_identity.karpenter](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/user_assigned_identity) | resource |
+| [helm_release.karpenter_nodepools](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [helm_release.rbac_bindings](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
-| [null_resource.karpenter_helm_values](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [null_resource.karpenter](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [random_string.suffix](https://registry.terraform.io/providers/hashicorp/random/3.3.2/docs/resources/string) | resource |
 | [time_sleep.wait_for_rbac](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [azuread_group.k8s_groups](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/group) | data source |
 | [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
+| [azurerm_resource_group.default_nodepool](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/resource_group) | data source |
 
 ## Inputs
 
@@ -167,9 +173,10 @@ A custom bastion host is implemented for access to eks cluster if private access
 | <a name="input_karpenter_crds_chart_version"></a> [karpenter\_crds\_chart\_version](#input\_karpenter\_crds\_chart\_version) | Version of the Karpenter crds Helm chart | `string` | `""` | no |
 | <a name="input_karpenter_identity_name"></a> [karpenter\_identity\_name](#input\_karpenter\_identity\_name) | Name of the user-assigned managed identity. | `string` | `"karpentermsi"` | no |
 | <a name="input_karpenter_namespace"></a> [karpenter\_namespace](#input\_karpenter\_namespace) | Namespace where Karpenter will be installed | `string` | `"kube-system"` | no |
-| <a name="input_karpenter_resources"></a> [karpenter\_resources](#input\_karpenter\_resources) | CPU and memory requests and limits for the Karpenter controller | <pre>object({<br/>    request_cpu    = string<br/>    request_memory = string<br/>    limit_cpu      = string<br/>    limit_memory   = string<br/>  })</pre> | <pre>{<br/>  "limit_cpu": "1",<br/>  "limit_memory": "1Gi",<br/>  "request_cpu": "1",<br/>  "request_memory": "1Gi"<br/>}</pre> | no |
+| <a name="input_karpenter_resources"></a> [karpenter\_resources](#input\_karpenter\_resources) | CPU and memory requests and limits for the Karpenter controller | <pre>object({<br/>    request_cpu    = string<br/>    request_memory = string<br/>    limit_memory   = string<br/>  })</pre> | <pre>{<br/>  "limit_memory": "512Mi",<br/>  "request_cpu": "200m",<br/>  "request_memory": "512Mi"<br/>}</pre> | no |
 | <a name="input_karpenter_roles"></a> [karpenter\_roles](#input\_karpenter\_roles) | List of built-in roles to assign to the Karpenter MSI | `list(string)` | <pre>[<br/>  "Virtual Machine Contributor",<br/>  "Network Contributor",<br/>  "Managed Identity Operator"<br/>]</pre> | no |
 | <a name="input_karpenter_service_account_name"></a> [karpenter\_service\_account\_name](#input\_karpenter\_service\_account\_name) | The name of the Karpenter service account | `string` | `"karpenter-controller-sa"` | no |
+| <a name="input_karpenter_subnet_role_definition"></a> [karpenter\_subnet\_role\_definition](#input\_karpenter\_subnet\_role\_definition) | Role definition name or ID to assign on the subnets | `string` | `"Network Contributor"` | no |
 | <a name="input_karpenter_version"></a> [karpenter\_version](#input\_karpenter\_version) | n/a | `string` | `""` | no |
 | <a name="input_key_expiration_offset"></a> [key\_expiration\_offset](#input\_key\_expiration\_offset) | The duration (e.g., '1h', '24h', '720h') to add to the current timestamp to set the key expiration date. | `string` | `"8760h"` | no |
 | <a name="input_key_vault_ip_rules"></a> [key\_vault\_ip\_rules](#input\_key\_vault\_ip\_rules) | List of IP addresses allowed to access the key vault | `list(string)` | <pre>[<br/>  "185.209.237.16"<br/>]</pre> | no |
@@ -221,6 +228,7 @@ A custom bastion host is implemented for access to eks cluster if private access
 
 | Name | Description |
 |------|-------------|
+| <a name="output_aad_group_ids"></a> [aad\_group\_ids](#output\_aad\_group\_ids) | n/a |
 | <a name="output_aks_id"></a> [aks\_id](#output\_aks\_id) | The `azurerm_kubernetes_cluster`'s id. |
 | <a name="output_aks_name"></a> [aks\_name](#output\_aks\_name) | The name of the Azure Kubernetes Cluster. |
 | <a name="output_client_certificate"></a> [client\_certificate](#output\_client\_certificate) | The `client_certificate` in the `azurerm_kubernetes_cluster`'s `kube_config` block. |

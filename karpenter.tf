@@ -92,10 +92,10 @@ EOF
   }
 
   triggers = {
-    script_sha = filesha256("${path.module}/bin/karpenter.sh")
+    script_sha   = filesha256("${path.module}/bin/karpenter.sh")
     template_sha = filesha256("${path.module}/templates/karpenter/karpenter.yaml.tpl")
   }
-  
+
   depends_on = [module.aks]
 }
 

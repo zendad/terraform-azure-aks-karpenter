@@ -1,15 +1,9 @@
-<<<<<<< HEAD
-=======
 # environment vars
->>>>>>> feature/update
 subscription_id = ""
 location        = "westeurope"
 environment     = "dev"
 
-<<<<<<< HEAD
-=======
 # tags
->>>>>>> feature/update
 default_tags = {
   environment = "Dev"
   owner       = "Infrastructure"
@@ -21,10 +15,7 @@ default_tags = {
   gitlab      = ""
 }
 
-<<<<<<< HEAD
-=======
 # agent node labels
->>>>>>> feature/update
 agents_labels = {
   environment = "Dev"
   owner       = "Infrastructure"
@@ -33,24 +24,6 @@ agents_labels = {
   costcenter  = "containerplatform"
 }
 
-<<<<<<< HEAD
-account_tier               = "Standard"
-account_replication_type   = "GRS"
-container_access_type      = "private"
-ebpf_data_plane            = "cilium"
-net_profile_pod_cidr       = "172.16.0.0/16"
-net_profile_service_cidr   = "10.100.0.0/16"
-net_profile_dns_service_ip = "10.100.0.10"
-kubernetes_version         = "1.32"
-vnet_cidr                  = "10.0.0.0/16"
-availability_zones         = ["1", "2", "3"]
-network_plugin             = "azure"
-network_policy             = "cilium"
-
-karpenter_crds_chart_version = "0.1.0"
-karpenter_namespace = "karpenter"
-karpenter_version = "v0.7.5"
-=======
 # cluster variables
 account_tier                       = "Standard"
 account_replication_type           = "GRS"
@@ -64,7 +37,7 @@ vnet_cidr                          = "172.17.0.0/16"
 network_plugin                     = "azure"
 network_policy                     = "cilium"
 enable_auto_scaling                = false
-agents_count                       = 2
+agents_count                       = 1
 agents_min_count                   = 1
 agents_max_count                   = 1
 os_disk_size_gb                    = 60
@@ -81,4 +54,3 @@ karpenter_crds_chart_version = "0.7.5"
 karpenter_namespace          = "kube-system"
 karpenter_version            = "1.5.4"
 bootstrap_token_secret_name  = "dereck"
->>>>>>> feature/update

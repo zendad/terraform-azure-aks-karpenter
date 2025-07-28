@@ -41,43 +41,65 @@ locals {
     "westus3"            = "wus3"
   }
 
-  name_prefix  = "${var.environment}-${local.azure_regions_shortname[var.location]}"
-  vnet_name    = "vnet-${local.name_prefix}"
-  cluster_name = "aks-cluster-${local.name_prefix}"
-
-  public_subnet_names  = [for i in range(1, 4) : "snet-public-${local.name_prefix}-${i}"]
-  private_subnet_names = [for i in range(1, 4) : "snet-private-${local.name_prefix}-${i}"]
+  name_prefix                  = "${var.environment}-${local.azure_regions_shortname[var.location]}"
+  prefix                       = "aks"
+  vnet_name                    = "vnet-${local.name_prefix}"
+  cluster_name                 = "aks-cluster-${local.name_prefix}"
+  nodepool_resource_group_name = "rg-nodepool-${local.name_prefix}"
 
   # Public subnets
   public_subnet_cidrs = [
-    cidrsubnet(var.vnet_cidr, 11, 0),
-    cidrsubnet(var.vnet_cidr, 11, 1),
-    cidrsubnet(var.vnet_cidr, 11, 2)
+    cidrsubnet(var.vnet_cidr, 11, 0) # 5 bits added to /24 = /29, but we want /27, so adjust base cidr accordingly
   ]
 
   # Private subnets
   private_subnet_cidrs = [
-    cidrsubnet(var.vnet_cidr, 11, 3),
-    cidrsubnet(var.vnet_cidr, 11, 4),
-    cidrsubnet(var.vnet_cidr, 11, 5)
+    cidrsubnet(var.vnet_cidr, 9, 1) # /25 subnet
   ]
+
+  public_subnet_names  = [for idx, cidr in local.public_subnet_cidrs : "snet-public-${local.name_prefix}-${idx + 1}"]
+  private_subnet_names = [for idx, cidr in local.private_subnet_cidrs : "snet-private-${local.name_prefix}-${idx + 1}"]
 
   # Count each type
   public_subnet_count  = length(local.public_subnet_names)
   private_subnet_count = length(local.private_subnet_names)
 
   # Split the flat list of subnet IDs from the module into slices
-  public_subnet_id_list = slice(module.network.vnet_subnets, 0, local.public_subnet_count)
-  private_subnet_id_list = slice(
-    module.network.vnet_subnets,
-    local.public_subnet_count,
-  local.public_subnet_count + local.private_subnet_count)
+  subnet_name_to_id_map = zipmap(
+    concat(local.private_subnet_names, local.public_subnet_names),
+    module.network.vnet_subnets
+  )
 
+  private_subnet_id_list = [
+    for sn_name in local.private_subnet_names :
+    local.subnet_name_to_id_map[sn_name]
+  ]
+
+  public_subnet_id_list = [
+    for sn_name in local.public_subnet_names :
+    local.subnet_name_to_id_map[sn_name]
+  ]
+
+  default_nodepool_subnet_id = local.subnet_name_to_id_map[local.private_subnet_names[0]]
 
   cluster_roles = [
     "aks-cluster-clusteradmin",
     "aks-cluster-clusteroperator",
-    "aks-cluster-clusterviewer"
+    "aks-cluster-clusterviewer",
+    "aks-cluster-namespaceadmin",
+    "aks-cluster-namespaceoperator",
+    "aks-cluster-namespaceviewer"
   ]
+
+  clusterrole_groups = {
+    for role in local.cluster_roles :
+    role => {
+      id = data.azuread_group.k8s_groups[role].object_id
+    }
+  }
+
+  karpenter_log_level = "info"
+
+  key_expiration_date = timeadd("${formatdate("YYYY-MM-DD", timestamp())}T00:00:00Z", var.key_expiration_offset)
 
 }

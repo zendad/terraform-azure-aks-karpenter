@@ -1,0 +1,64 @@
+{{- range .Values.nodePools }}
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: {{ .name }}
+  annotations:
+    kubernetes.io/description: "{{ .description }}"
+spec:
+  disruption:
+    consolidateAfter: {{ .disruption.consolidateAfter | default "0s" | quote }}
+    {{- if .disruption.budgets }}
+    budgets:
+      {{- range .disruption.budgets }}
+      - nodes: {{ .nodes | quote }}
+      {{- end }}
+    {{- end }}
+  {{- if .limits }}
+  limits:
+    {{- if .limits.cpu }}
+    cpu: "{{ .limits.cpu }}"
+    {{- end }}
+    {{- if .limits.memory }}
+    memory: "{{ .limits.memory }}"
+    {{- end }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- range $k, $v := .labels }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
+    spec:
+      expireAfter: {{ .expireAfter | default "Never" | quote }}
+      nodeClassRef:
+        group: {{ .nodeClassRef.group | default "karpenter.azure.com" | quote }}
+        kind: {{ .nodeClassRef.kind | default "AKSNodeClass" | quote }}
+        name: {{ .nodeClassRef.name | quote }}
+      {{- if .startupTaints }}
+      startupTaints:
+        {{- range .startupTaints }}
+        - key: {{ .key | quote }}
+          effect: {{ .effect }}
+          value: {{ .value | quote }}
+        {{- end }}
+      {{- end }}
+      {{- if .taints }}
+      taints:
+        {{- range .taints }}
+        - key: {{ .key | quote }}
+          value: {{ .value | quote }}
+          effect: {{ .effect | quote }}
+        {{- end }}
+      {{- end }}
+      requirements:
+        {{- range .requirements }}
+        - key: {{ .key }}
+          operator: {{ .operator }}
+          values:
+            {{- range .values }}
+            - {{ . | quote }}
+            {{- end }}
+        {{- end }}
+---
+{{- end }}
